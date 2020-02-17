@@ -1,7 +1,7 @@
 import copy
 import traceback
 import sys
-from pymongo import MongoClient, errors as MongoErrors
+from pymongo import MongoClient, errors as MongoErrors, DESCENDING
 
 class Database:
     def __init__(self, host=None, port=27017, db='tester'):
@@ -37,6 +37,9 @@ class Database:
 
     def write_rate_limit(self, data):
         self.rate_limits.insert_one(data)
+
+    def get_result_by_screen_name(self, screen_name):
+        return self.results.find_one({ "profile.screen_name": screen_name }, sort=[("_id", DESCENDING)], projection={"_id": False})
 
 def connect(host=None, port=27017, db='tester'):
     if host is None:
