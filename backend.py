@@ -14,6 +14,8 @@ from aiohttp import web
 from bs4 import BeautifulSoup
 from db import connect
 
+from typeahead import test as test_typeahead
+
 routes = web.RouteTableDef()
 
 class UnexpectedApiError(Exception):
@@ -201,9 +203,6 @@ class TwitterSession:
         if live:
             additional_query = "&tweet_search_mode=live"
         return await self.get("https://api.twitter.com/2/search/adaptive.json?q="+urllib.parse.quote(query)+"&count=20&spelling_corrections=0" + additional_query)
-
-    async def typeahead_raw(self, query):
-        return await self.get("https://api.twitter.com/1.1/search/typeahead.json?src=search_box&result_type=users&q=" + urllib.parse.quote(query))
 
     async def profile_raw(self, username):
         return await self.get("https://api.twitter.com/1.1/users/show.json?screen_name=" + urllib.parse.quote(username))
@@ -436,12 +435,7 @@ class TwitterSession:
         except (KeyError, IndexError):
             pass
 
-        typeahead_raw = await self.typeahead_raw("@" + username)
-        result["tests"]["typeahead"] = False
-        try:
-            result["tests"]["typeahead"] = len([1 for user in typeahead_raw["users"] if user["screen_name"].lower() == username.lower()]) > 0
-        except KeyError:
-            pass
+        result["tests"]["typeahead"] = await test_typeahead(self, username)
 
         if "search" in result["tests"] and result["tests"]["search"] == False:
             result["tests"]["ghost"] = await self.test_ghost_ban(user_id)
