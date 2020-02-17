@@ -12,8 +12,9 @@ import time
 
 from aiohttp import web
 from bs4 import BeautifulSoup
-from db import connect
 
+from db import connect
+from statistics import count_sensitives
 from typeahead import test as test_typeahead
 
 routes = web.RouteTableDef()
@@ -420,6 +421,8 @@ class TwitterSession:
 
         if not profile["exists"] or profile.get("suspended", False) or profile.get("protected", False) or not profile.get('has_tweets'):
             return result
+
+        result["profile"]["sensitives"] = await count_sensitives(self, user_id)
 
         result["tests"] = {}
 
