@@ -510,6 +510,7 @@ async def api(request):
     global test_index
     screen_name = request.match_info['screen_name']
     if screen_name == "wikileaks" and request.query_string != "watch":
+        debug("[wikileaks] Returning last watch result")
         db_result = db.get_result_by_screen_name("wikileaks")
         return web.json_response(db_result, headers={"Access-Control-Allow-Origin": args.cors_allow})
     session = guest_sessions[test_index % len(guest_sessions)]
