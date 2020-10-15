@@ -54,6 +54,7 @@ node_modules
 .env
 .env.*
 !.env.example
+!.env.docker
 .ht*
 
 # starter scripts with possibly sensitive data
