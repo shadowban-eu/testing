@@ -1,6 +1,7 @@
 import copy
 import traceback
 import sys
+from time import sleep
 from pymongo import MongoClient, errors as MongoErrors, DESCENDING
 
 class Database:
@@ -9,26 +10,19 @@ class Database:
         RESULTS_COLLECTION = 'results'
         RATELIMIT_COLLECTION = 'rate-limits'
 
-        try:
-            print('[mongoDB] Connecting to ' + host + ':' + str(port))
-            print('[mongoDB] Using Database `' + db + '`')
-            # client and DB
-            self.client = MongoClient(host, port, serverSelectionTimeoutMS=3, username=username, password=password)
-            self.db = self.client[db]
+        print('[mongoDB] Connecting to ' + host + ':' + str(port))
+        print('[mongoDB] Using Database `' + db + '`')
+        # client and DB
+        self.client = MongoClient(host, port, serverSelectionTimeoutMS=3, username=username, password=password)
+        self.db = self.client[db]
 
-            # collections
-            self.results = self.db[RESULTS_COLLECTION]
-            self.rate_limits = self.db[RATELIMIT_COLLECTION]
+        # collections
+        self.results = self.db[RESULTS_COLLECTION]
+        self.rate_limits = self.db[RATELIMIT_COLLECTION]
 
-            # Test connection immediately, instead of
-            # when trying to write in a request, later.
-            self.client.admin.command('ismaster')
-        except MongoErrors.ServerSelectionTimeoutError:
-            print(traceback.format_exc())
-            sys.exit('MongoDB connection timed out.')
-        except:
-            print(traceback.format_exc())
-            sys.exit('MongoDB connection failed.')
+        # Test connection immediately, instead of
+        # when trying to write in a request, later.
+        self.client.admin.command('ismaster')
 
     def write_result(self, result):
         # copy.deepcopy; otherwise mongo ObjectId (_id) would be added,
@@ -45,4 +39,20 @@ def connect(host=None, port=27017, db='tester', username=None, password=None):
     if host is None:
         raise ValueError('[mongoDB] Database constructor needs a `host`name or ip!')
 
-    return Database(host=host, port=port, db=db, username=username, password=password)
+    attempt = 0
+    max_attempts = 7
+    mongo_client = None
+
+    while (mongo_client is None):
+        print('[mongoDB|connect] Connecting, ', attempt, '/', max_attempts)
+
+        try:
+            mongo_client = Database(host=host, port=port, db=db, username=username, password=password)
+        except Exception as e:
+            if attempt is max_attempts:
+                raise e
+
+            sleep(attempt)
+            attempt += 1
+
+    return mongo_client
