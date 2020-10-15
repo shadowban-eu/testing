@@ -568,8 +568,11 @@ else:
 
 ensure_dir(args.cookie_dir)
 
-with open(args.account_file, "r") as f:
-    accounts = json.loads(f.read())
+try:
+    with open(args.account_file, "r") as f:
+        accounts = json.loads(f.read())
+except:
+    accounts = []
 
 if args.log is not None:
     print("Logging test results to %s" % args.log)
