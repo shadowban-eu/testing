@@ -1,4 +1,4 @@
-#/usr/bin/env bash
+#!/usr/bin/env bash
 
 echo "Starting server..."
 echo "--account-file $ACCOUNT_FILE"
