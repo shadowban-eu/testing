@@ -555,6 +555,8 @@ parser.add_argument('--host', type=str, default='127.0.0.1', help='hostname/ip w
 parser.add_argument('--mongo-host', type=str, default='localhost', help='hostname or IP of mongoDB service to connect to')
 parser.add_argument('--mongo-port', type=int, default=27017, help='port of mongoDB service to connect to')
 parser.add_argument('--mongo-db', type=str, default='tester', help='name of mongo database to use')
+parser.add_argument('--mongo-username', type=str, default=None, help='user with read/write permissions to --mongo-db')
+parser.add_argument('--mongo-password', type=str, default=None, help='password for --mongo-username')
 parser.add_argument('--twitter-auth-key', type=str, default=None, help='auth key for twitter guest session', required=True)
 parser.add_argument('--cors-allow', type=str, default=None, help='value for Access-Control-Allow-Origin header')
 args = parser.parse_args()
@@ -588,7 +590,12 @@ if args.debug is not None:
 
 def run():
     global db
-    db = connect(host=args.mongo_host, port=args.mongo_port)
+    db = connect(
+        host=args.mongo_host,
+        port=args.mongo_port,
+        username=args.mongo_username,
+        password=args.mongo_password
+    )
     loop = asyncio.get_event_loop()
     loop.run_until_complete(login_accounts(accounts, args.cookie_dir))
     loop.run_until_complete(login_guests())

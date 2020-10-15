@@ -10,7 +10,9 @@ echo "--host "$HOST""
 echo "--mongo-host $MONGO_HOST"
 echo "--mongo-port $MONGO_PORT"
 echo "--mongo-db $MONGO_DB"
-echo "--twitter-auth-key --NOT SHOWING--"
+echo "--mongo-username $MONGO_USERNAME"
+echo "--mongo-password --REDACTED--"
+echo "--twitter-auth-key --REDACTED--"
 echo "--cors-allow $CORS_HOST"
 
 python3 -u ./backend.py \
@@ -23,5 +25,7 @@ python3 -u ./backend.py \
   --mongo-host $MONGO_HOST \
   --mongo-port $MONGO_PORT \
   --mongo-db $MONGO_DB \
+  --mongo-username $MONGO_USERNAME \
+  --mongo-password $MONGO_PASSWORD \
   --twitter-auth-key $TWITTER_AUTH_KEY \
   --cors-allow $CORS_HOST
