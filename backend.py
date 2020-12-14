@@ -237,7 +237,7 @@ class TwitterSession:
             self.overshot = 0
 
         # count the requests that failed because of rate limiting
-        if self.remaining is 0:
+        if self.remaining == 0:
             log('[rate-limit] Limit hit by ' + str(self.username) + '.')
             self.overshot += 1
 
