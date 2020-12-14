@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if [ -f $1 ]; then
+  echo "Using provided .env file: $1"
+  export $(cat $1 | xargs)
+  shift
+fi
+
 echo "Starting server..."
 echo "--account-file $ACCOUNT_FILE"
 echo "--cookie-dir $COOKIE_DIR"
@@ -16,7 +22,15 @@ echo "--twitter-auth-key --REDACTED--"
 echo "--cors-allow $CORS_HOST"
 echo "--guest-sessions $GUEST_SESSIONS"
 
-python3 -u ./backend.py \
+CMD="python3 -u ./backend.py"
+
+if [ "$1" == "mprof" ]; then
+  shift
+  CMD="mprof run $@ ./backend.py"
+  echo -e "\nRecording memory profile\n"
+fi
+
+$CMD \
   --account-file $ACCOUNT_FILE \
   --cookie-dir $COOKIE_DIR \
   --log $LOG_FILE \
