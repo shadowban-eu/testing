@@ -39,7 +39,6 @@ account_sessions = []
 account_index = 0
 log_file = None
 debug_file = None
-guest_session_pool_size = 10
 guest_sessions = []
 test_index = 0
 
@@ -559,9 +558,11 @@ parser.add_argument('--mongo-username', type=str, default=None, help='user with 
 parser.add_argument('--mongo-password', type=str, default=None, help='password for --mongo-username')
 parser.add_argument('--twitter-auth-key', type=str, default=None, help='auth key for twitter guest session', required=True)
 parser.add_argument('--cors-allow', type=str, default=None, help='value for Access-Control-Allow-Origin header')
+parser.add_argument('--guest-sessions', type=int, default=10, help='number of Twitter guest sessions to use')
 args = parser.parse_args()
 
 TwitterSession.twitter_auth_key = args.twitter_auth_key
+guest_session_pool_size = args.guest_sessions
 
 if (args.cors_allow is None):
     debug('[CORS] Running without CORS headers')

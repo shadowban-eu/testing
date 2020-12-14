@@ -14,6 +14,7 @@ echo "--mongo-username $MONGO_USERNAME"
 echo "--mongo-password --REDACTED--"
 echo "--twitter-auth-key --REDACTED--"
 echo "--cors-allow $CORS_HOST"
+echo "--guest-sessions $GUEST_SESSIONS"
 
 python3 -u ./backend.py \
   --account-file $ACCOUNT_FILE \
@@ -28,4 +29,5 @@ python3 -u ./backend.py \
   --mongo-username $MONGO_USERNAME \
   --mongo-password $MONGO_PASSWORD \
   --twitter-auth-key $TWITTER_AUTH_KEY \
-  --cors-allow $CORS_HOST
+  --cors-allow $CORS_HOST \
+  --guest-sessions $GUEST_SESSIONS
