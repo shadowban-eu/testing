@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-if [ -f $1 ]; then
+source ./_venv
+
+if [ "$1" != "" ] && [ -f $1 ]; then
   echo "Using provided .env file: $1"
   export $(cat $1 | xargs)
   shift
