@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source ./_venv
+source ./bin/_venv
 
 if [ "$1" != "" ] && [ -f $1 ]; then
   echo "Using provided .env file: $1"

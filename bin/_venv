@@ -6,10 +6,14 @@ if ! hash python3 &> /dev/null; then
 fi
 echo "OK"
 
-if [ ! -f .venv/bin/activate ]; then
-  echo "Creating new venv in: ./.venv"
-  python3 -m venv ./.venv
-fi
+if [ "$NO_VENV" != "1" ]; then
+  if [ ! -f .venv/bin/activate ]; then
+    echo "Creating new venv in: ./.venv"
+    python3 -m venv ./.venv
+  fi
 
-echo "Loading virtualenv: ./.venv"
-source ./.venv/bin/activate
+  echo "Loading virtualenv: ./.venv"
+  source ./.venv/bin/activate
+else
+  echo "Skipping venv setup"
+fi
