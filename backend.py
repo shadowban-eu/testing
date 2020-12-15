@@ -154,6 +154,16 @@ if args.debug is not None:
     ensure_dir(debug_dir)
     debug_file = open(args.debug, "a")
 
+async def close_sessions(app):
+    print("\nClosing %s guest sessions" % len(TwitterSession.guest_sessions))
+    for session in TwitterSession.guest_sessions:
+        await session.close()
+
+async def close_database(app):
+    global db
+    print("Closing database connection")
+    db.close()
+
 def run():
     global db
     db = connect(
@@ -167,6 +177,8 @@ def run():
     loop.run_until_complete(login_guests())
     app = web.Application()
     app.add_routes(routes)
+    app.on_shutdown.append(close_sessions)
+    app.on_cleanup.append(close_database)
     web.run_app(app, host=args.host, port=args.port)
 
 if args.daemon:

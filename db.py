@@ -35,6 +35,9 @@ class Database:
     def get_result_by_screen_name(self, screen_name):
         return self.results.find_one({ "profile.screen_name": screen_name }, sort=[("_id", DESCENDING)], projection={"_id": False})
 
+    def close(self):
+        self.client.close()
+
 def connect(host=None, port=27017, db='tester', username=None, password=None):
     if host is None:
         raise ValueError('[mongoDB] Database constructor needs a `host`name or ip!')
