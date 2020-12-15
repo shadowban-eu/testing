@@ -7,8 +7,7 @@ fi
 echo 'Stopping service'
 pkill -f twitter-auth-key
 if [ $? -ne 0 ]; then
-  echo "Service not running. Aborting."
-  exit 1
+  echo "Service not running"
 fi
 
 if [ "$1" == "-k" ]; then
