@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source ./_venv
+source ./bin/_venv
 
 echo "Installing dependencies..."
 pip3 install -r requirements.txt --no-cache-dir
