@@ -5,9 +5,9 @@ Follow the quickstart instructions in our docker repo's [README](https://github.
 ### Install/Run
 
 ```bash
-$ git clone https://github.com/shadowban-eu/shadowban-testing ./shadowban-testing; cd $_
-$ ./install.sh
-$ ./docker-entry.sh .env.example # takes any .env file
+$ git clone https://github.com/shadowban-eu/testing ./testing; cd $_
+$ ./bin/install.sh
+$ ./bin/docker-entry.sh .env.example # takes any .env file
 ```
 
 ### Memory Profiling
@@ -15,9 +15,9 @@ Using [memory-profiler](https://pypi.org/project/memory-profiler/) to debug memo
 
 ```bash
 # When env vars are already set
-$ ./docker-entry.sh mprof
+$ ./bin/docker-entry.sh mprof
 # Otherwise, read from file
-$ ./docker-entry.sh .env.example mprof
+$ ./bin/docker-entry.sh .env.example mprof
 # Passes remaining arguments to mprof (set interval to 5s)
-$ ./docker-entry.sh .env.example mprof -T 5
+$ ./bin/docker-entry.sh .env.example mprof -T 5
 ```
