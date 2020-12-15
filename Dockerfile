@@ -4,4 +4,4 @@ RUN mkdir /app
 ADD . /app
 
 WORKDIR /app
-RUN ./install.sh
+RUN ./bin/install.sh

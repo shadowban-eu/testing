@@ -4,9 +4,6 @@ Follow the quickstart instructions in our docker repo's [README](https://github.
 
 ### Install/Run
 
-You need [virtualenv](https://pypi.org/project/virtualenv/) in $PATH, as both
-`./install.sh` and `./docker-entry.sh` work on a venv in ./.venv
-
 ```bash
 $ git clone https://github.com/shadowban-eu/shadowban-testing ./shadowban-testing; cd $_
 $ ./install.sh
