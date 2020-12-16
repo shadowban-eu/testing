@@ -131,12 +131,12 @@ if args.debug is True:
 else:
     set_log_level('info')
 
-async def close_sessions(app):
+async def shut_down(app):
     log.info("Closing %s guest sessions" % len(TwitterSession.guest_sessions))
     for session in TwitterSession.guest_sessions:
         await session.close()
 
-async def close_database(app):
+async def clean_up(app):
     global db
     log.info("Closing database connection")
     db.close()
@@ -151,13 +151,16 @@ def run():
         username=args.mongo_username,
         password=args.mongo_password
     )
+
     loop = asyncio.get_event_loop()
     loop.run_until_complete(login_accounts(accounts, args.cookie_dir))
     loop.run_until_complete(login_guests())
+
     app = web.Application()
     app.add_routes(routes)
-    app.on_shutdown.append(close_sessions)
-    app.on_cleanup.append(close_database)
+    app.on_shutdown.append(shut_down)
+    app.on_cleanup.append(clean_up)
+
     web.run_app(app, host=args.host, port=args.port)
 
 if args.daemon:
