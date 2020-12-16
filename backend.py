@@ -13,8 +13,9 @@ import time
 from aiohttp import web
 from bs4 import BeautifulSoup
 
-from twitter_session import TwitterSession
+from log import *
 from db import connect
+from twitter_session import TwitterSession
 
 log_file = None
 debug_file = None
@@ -22,28 +23,7 @@ db = None
 
 routes = web.RouteTableDef()
 
-def debug(message):
-    if message.endswith('\n') is False:
-        message = message + '\n'
-
-    if debug_file is not None:
-        debug_file.write(message)
-        debug_file.flush()
-    else:
-        print(message)
-
-def log(message):
-    # ensure newline
-    if message.endswith('\n') is False:
-         message = message + '\n'
-
-    if log_file is not None:
-        log_file.write(message)
-        log_file.flush()
-    else:
-        print(message)
-
-def print_session_info(sessions):
+def log_session_info(sessions):
     text = ""
     for session in sessions:
         text += "\n%6d %5d %9d %5d" % (int(session.locked), session.limit, session.remaining, session.reset - int(time.time()))
@@ -52,9 +32,9 @@ def print_session_info(sessions):
 @routes.get('/.stats')
 async def stats(request):
     text = "--- GUEST SESSIONS ---\n\nLocked Limit Remaining Reset"
-    text += print_session_info(TwitterSession.guest_sessions)
+    text += log_session_info(TwitterSession.guest_sessions)
     text += "\n\n\n--- ACCOUNTS ---\n\nLocked Limit Remaining Reset"
-    text += print_session_info(TwitterSession.account_sessions)
+    text += log_session_info(TwitterSession.account_sessions)
     return web.Response(text=text)
 
 @routes.get('/.unlocked/{screen_name}')
@@ -73,14 +53,14 @@ async def unlocked(request):
 async def api(request):
     screen_name = request.match_info['screen_name']
     if screen_name == "wikileaks" and request.query_string != "watch":
-        debug("[wikileaks] Returning last watch result")
+        log.debug("[wikileaks] Returning last watch result")
         db_result = db.get_result_by_screen_name("wikileaks")
         return web.json_response(db_result, headers={"Access-Control-Allow-Origin": args.cors_allow})
     session = TwitterSession.guest_sessions[TwitterSession.test_index % len(TwitterSession.guest_sessions)]
     TwitterSession.test_index += 1
     result = await session.test(screen_name)
     db.write_result(result)
-    log(json.dumps(result) + '\n')
+    log.debug(json.dumps(result) + '\n')
     if (args.cors_allow is not None):
         return web.json_response(result, headers={"Access-Control-Allow-Origin": args.cors_allow})
     else:
@@ -101,40 +81,44 @@ async def login_guests():
         session = TwitterSession()
         TwitterSession.guest_sessions.append(session)
     await asyncio.gather(*[s.login() for s in TwitterSession.guest_sessions])
-    log("Guest sessions created")
+    log.info("%d guest sessions created", len(TwitterSession.guest_sessions))
 
 def ensure_dir(path):
     if os.path.isdir(path) is False:
-        print('Creating directory %s' % path)
+        log.info('Creating directory %s' % path)
         os.mkdir(path)
 
 parser = argparse.ArgumentParser(description='Twitter Shadowban Tester')
 parser.add_argument('--account-file', type=str, default='.htaccounts', help='json file with reference account credentials')
-parser.add_argument('--cookie-dir', type=str, default=None, help='directory for session account storage')
-parser.add_argument('--log', type=str, default=None, help='log file where test results are written to')
+parser.add_argument('--cookie-dir', type=str, default=None, help='directory for session cookies')
+parser.add_argument('--log', type=str, default='./logs/backend.log', help='file to write logs to (default: ./logs/backend.log)')
 parser.add_argument('--daemon', action='store_true', help='run in background')
-parser.add_argument('--debug', type=str, default=None, help='debug log file')
-parser.add_argument('--port', type=int, default=8080, help='port which to listen on')
-parser.add_argument('--host', type=str, default='127.0.0.1', help='hostname/ip which to listen on')
-parser.add_argument('--mongo-host', type=str, default='localhost', help='hostname or IP of mongoDB service to connect to')
-parser.add_argument('--mongo-port', type=int, default=27017, help='port of mongoDB service to connect to')
-parser.add_argument('--mongo-db', type=str, default='tester', help='name of mongo database to use')
+parser.add_argument('--debug', action='store_true', help='show debug log messages')
+parser.add_argument('--port', type=int, default=8080, help='port which to listen on (default: 8080)')
+parser.add_argument('--host', type=str, default='127.0.0.1', help='hostname/ip which to listen on (default:127.0.0.1)')
+parser.add_argument('--mongo-host', type=str, default='localhost', help='hostname or IP of mongoDB service to connect to (default: localhost)')
+parser.add_argument('--mongo-port', type=int, default=27017, help='port of mongoDB service to connect to (default: 27017)')
+parser.add_argument('--mongo-db', type=str, default='tester', help='name of mongo database to use (default: tester)')
 parser.add_argument('--mongo-username', type=str, default=None, help='user with read/write permissions to --mongo-db')
 parser.add_argument('--mongo-password', type=str, default=None, help='password for --mongo-username')
 parser.add_argument('--twitter-auth-key', type=str, default=None, help='auth key for twitter guest session', required=True)
 parser.add_argument('--cors-allow', type=str, default=None, help='value for Access-Control-Allow-Origin header')
-parser.add_argument('--guest-sessions', type=int, default=10, help='number of Twitter guest sessions to use')
+parser.add_argument('--guest-sessions', type=int, default=10, help='number of Twitter guest sessions to use (default: 10)')
 args = parser.parse_args()
 
 TwitterSession.twitter_auth_key = args.twitter_auth_key
 guest_session_pool_size = args.guest_sessions
 
 if (args.cors_allow is None):
-    debug('[CORS] Running without CORS headers')
+    log.warning('[CORS] Running without CORS headers')
 else:
-    debug('[CORS] Allowing requests from: ' + args.cors_allow)
+    log.info('[CORS] Allowing requests from: ' + args.cors_allow)
 
 ensure_dir(args.cookie_dir)
+
+log_dir = os.path.dirname(args.log)
+ensure_dir(log_dir)
+add_file_handler(args.log)
 
 try:
     with open(args.account_file, "r") as f:
@@ -142,27 +126,22 @@ try:
 except:
     accounts = []
 
-if args.log is not None:
-    print("Logging test results to %s" % args.log)
-    log_dir = os.path.dirname(args.log)
-    ensure_dir(log_dir)
-    log_file = open(args.log, "a")
-
-if args.debug is not None:
-    print("Logging debug output to %s" % args.debug)
-    debug_dir = os.path.dirname(args.debug)
-    ensure_dir(debug_dir)
-    debug_file = open(args.debug, "a")
+if args.debug is True:
+    set_log_level('debug')
+else:
+    set_log_level('info')
 
 async def close_sessions(app):
-    print("\nClosing %s guest sessions" % len(TwitterSession.guest_sessions))
+    log.info("Closing %s guest sessions" % len(TwitterSession.guest_sessions))
     for session in TwitterSession.guest_sessions:
         await session.close()
 
 async def close_database(app):
     global db
-    print("Closing database connection")
+    log.info("Closing database connection")
     db.close()
+
+    shutdown_logging()
 
 def run():
     global db

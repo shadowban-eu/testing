@@ -2,6 +2,7 @@ import aiohttp
 import time
 import urllib
 
+from log import log
 from statistics import count_sensitives
 from typeahead import test as test_typeahead
 
@@ -50,9 +51,9 @@ class TwitterSession:
             response = await r.json()
         guest_token = response.get("guest_token", None)
         if guest_token is None:
-            debug("Failed to fetch guest token")
-            debug(str(response))
-            debug(str(self._headers))
+            log.debug("Failed to fetch guest token")
+            log.debug(str(response))
+            log.debug(str(self._headers))
         return guest_token
 
     def reset_headers(self):
@@ -68,9 +69,9 @@ class TwitterSession:
     async def refresh_old_token(self):
         if self.username is not None or self.next_refresh is None or time.time() < self.next_refresh:
             return
-        debug("Refreshing token: " + str(self._guest_token))
+        log.debug("Refreshing token: " + str(self._guest_token))
         await self.login_guest()
-        debug("New token: " + str(self._guest_token))
+        log.debug("New token: " + str(self._guest_token))
 
     async def try_close(self):
         if self._session is not None:
@@ -98,7 +99,7 @@ class TwitterSession:
             if cookie_dir is not None:
                 cookie_file = os.path.join(cookie_dir, username)
                 if os.path.isfile(cookie_file):
-                    log("Use cookie file for %s" % username)
+                    log.info("Use cookie file for %s" % username)
                     self._session.cookie_jar.load(cookie_file)
                     login_required = False
 
@@ -116,11 +117,11 @@ class TwitterSession:
                 async with self._session.post('https://twitter.com/sessions', data=form_data, headers=self._headers) as r:
                     response = await r.text()
                     if str(r.url) == "https://twitter.com/":
-                        log("Login of %s successful" % username)
+                        log.info("Login of %s successful" % username)
                     else:
                         store_cookies = False
-                        log("Error logging in %s (%s)" % (username, r.url))
-                        debug("ERROR PAGE\n" + response)
+                        log.info("Error logging in %s (%s)" % (username, r.url))
+                        log.debug("ERROR PAGE\n" + response)
             else:
                 async with self._session.get('https://twitter.com', headers=self._headers) as r:
                     await r.text()
@@ -143,7 +144,7 @@ class TwitterSession:
             async with self._session.get(url, headers=self._headers) as r:
                 result = await r.json()
         except Exception as e:
-            debug("EXCEPTION: " + str(type(e)))
+            log.debug("EXCEPTION: " + str(type(e)))
             if self.username is None:
                 await self.login_guest()
             raise e
@@ -220,8 +221,8 @@ class TwitterSession:
                         obj["ban"] = True
                     return obj
         except:
-            debug('Unexpected Exception:')
-            debug(traceback.format_exc())
+            log.debug('Unexpected Exception:')
+            log.debug(traceback.format_exc())
             return { "error": "EUNKNOWN" }
 
     async def test_barrier(self, user_id, screen_name):
@@ -262,21 +263,21 @@ class TwitterSession:
                 if replied_tweet["reply_count"] > 500:
                     continue
 
-                debug('[' + screen_name + '] Barrier Test: ')
-                debug('[' + screen_name + '] Found:' + tid)
-                debug('[' + screen_name + '] In reply to:' + replied_to_id)
+                log.debug('[' + screen_name + '] Barrier Test: ')
+                log.debug('[' + screen_name + '] Found:' + tid)
+                log.debug('[' + screen_name + '] In reply to:' + replied_to_id)
 
                 reference_session = next_session()
                 reference_session = self
                 if reference_session is None:
-                    debug('No reference session')
+                    log.debug('No reference session')
                     return
 
                 TwitterSession.account_index += 1
 
                 before_barrier = await reference_session.tweet_raw(replied_to_id, 1000)
                 if get_nested(before_barrier, ["globalObjects", "tweets"]) is None:
-                    debug('notweets\n')
+                    log.debug('notweets\n')
                     return
 
                 if tid in self.get_ordered_tweet_ids(before_barrier):
@@ -296,7 +297,7 @@ class TwitterSession:
                     after_barrier = await reference_session.tweet_raw(replied_to_id, 1000, cursor=cursor)
 
                     if get_nested(after_barrier, ["globalObjects", "tweets"]) is None:
-                        debug('retinloop\n')
+                        log.debug('retinloop\n')
                         return
                     ids_after_barrier = self.get_ordered_tweet_ids(after_barrier)
                     if tid in self.get_ordered_tweet_ids(after_barrier):
@@ -304,20 +305,20 @@ class TwitterSession:
                     last_result = after_barrier
 
                 # happens when replied_to_id tweet has been deleted
-                debug('[' + screen_name + '] outer loop return')
+                log.debug('[' + screen_name + '] outer loop return')
                 return { "error": "EUNKNOWN" }
         except:
-            debug('Unexpected Exception in test_barrier:\n')
-            debug(traceback.format_exc())
+            log.debug('Unexpected Exception in test_barrier:\n')
+            log.debug(traceback.format_exc())
             return { "error": "EUNKNOWN" }
 
     async def test(self, username):
         result = {"timestamp": time.time()}
         profile = {}
         profile_raw = await self.profile_raw(username)
-        debug('Testing ' + str(username))
+        log.info('Testing ' + str(username))
         if is_another_error(profile_raw, [50, 63]):
-            debug("Other error:" + str(username))
+            log.debug("Other error:" + str(username))
             raise UnexpectedApiError
 
         try:
@@ -381,18 +382,12 @@ class TwitterSession:
         else:
             result["tests"]["more_replies"] = { "error": "EISGHOSTED"}
 
-        debug('[' + profile['screen_name'] + '] Writing result to DB')
+        log.debug('[' + profile['screen_name'] + '] Writing result to DB')
         return result
 
 
     async def close(self):
         await self._session.close()
-
-def debug(message):
-    print(message)
-
-def log(message):
-    print(message)
 
 def next_session():
     def key(s):

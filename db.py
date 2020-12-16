@@ -4,14 +4,16 @@ import sys
 from time import sleep
 from pymongo import MongoClient, errors as MongoErrors, DESCENDING
 
+from log import log
+
 class Database:
     def __init__(self, host=None, port=27017, db='tester', username=None, password=None):
         # collection name definitions
         RESULTS_COLLECTION = 'results'
         RATELIMIT_COLLECTION = 'rate-limits'
 
-        print('[mongoDB] Connecting to ' + host + ':' + str(port))
-        print('[mongoDB] Using Database `' + db + '`')
+        log.info('Connecting to ' + host + ':' + str(port))
+        log.info('Using Database `' + db + '`')
         # client and DB
         self.client = MongoClient(host, port, serverSelectionTimeoutMS=3, username=username, password=password)
         self.db = self.client[db]
@@ -40,15 +42,13 @@ class Database:
 
 def connect(host=None, port=27017, db='tester', username=None, password=None):
     if host is None:
-        raise ValueError('[mongoDB] Database constructor needs a `host`name or ip!')
+        raise ValueError('Database constructor needs a `host`name or ip!')
 
     attempt = 0
     max_attempts = 7
     mongo_client = None
 
     while (mongo_client is None):
-        print('[mongoDB|connect] Connecting, ', attempt, '/', max_attempts)
-
         try:
             mongo_client = Database(host=host, port=port, db=db, username=username, password=password)
         except Exception as e:
@@ -57,5 +57,6 @@ def connect(host=None, port=27017, db='tester', username=None, password=None):
 
             sleep(attempt)
             attempt += 1
+            log.warn('Retrying connection, %s/%s', attempt, max_attempts)
 
     return mongo_client
