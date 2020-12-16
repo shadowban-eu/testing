@@ -5,7 +5,6 @@ import daemon
 import json
 import os
 import re
-import traceback
 import urllib.parse
 import sys
 import time
