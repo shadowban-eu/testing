@@ -2,7 +2,7 @@ import copy
 import traceback
 import sys
 from time import sleep
-from pymongo import MongoClient, errors as MongoErrors, DESCENDING
+from pymongo import MongoClient, errors as MongoErrors
 
 from log import log
 
@@ -33,9 +33,6 @@ class Database:
 
     def write_rate_limit(self, data):
         self.rate_limits.insert_one(data)
-
-    def get_result_by_screen_name(self, screen_name):
-        return self.results.find_one({ "profile.screen_name": screen_name }, sort=[("_id", DESCENDING)], projection={"_id": False})
 
     def close(self):
         self.client.close()

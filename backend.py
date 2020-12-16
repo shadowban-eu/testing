@@ -51,10 +51,6 @@ async def unlocked(request):
 @routes.get('/{screen_name}')
 async def api(request):
     screen_name = request.match_info['screen_name']
-    if screen_name == "wikileaks" and request.query_string != "watch":
-        log.debug("[wikileaks] Returning last watch result")
-        db_result = db.get_result_by_screen_name("wikileaks")
-        return web.json_response(db_result, headers={"Access-Control-Allow-Origin": args.cors_allow})
     session = TwitterSession.guest_sessions[TwitterSession.test_index % len(TwitterSession.guest_sessions)]
     TwitterSession.test_index += 1
     result = await session.test(screen_name)
