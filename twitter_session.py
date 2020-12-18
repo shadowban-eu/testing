@@ -1,30 +1,30 @@
-import aiohttp
+from typing import Any
 import time
-import urllib
+import urllib, urllib.parse
+import os
+
+import aiohttp
+from bs4 import BeautifulSoup
+from yarl import URL
 
 from log import log
-from statistics import count_sensitives
-
-from util import get_nested
-
 from tests import *
-# from ghostban import test as test_ghost_ban
-# from reply_deboosting import test as test_reply_deboosting
-# from typeahead import test as test_typeahead
+from util import get_nested, is_error
 
 class UnexpectedApiError(Exception):
     pass
 
 class TwitterSession:
-    twitter_auth_key = None
+    twitter_auth_key = ''
     account_sessions = []
     account_index = 0
     guest_sessions = []
     test_index = 0
+    accounts = []
 
     def __init__(self):
-        self._guest_token = None
-        self._csrf_token = None
+        self._guest_token = ''
+        self._csrf_token = ''
 
         # aiohttp ClientSession
         self._session = None
@@ -46,8 +46,8 @@ class TwitterSession:
         self.reset_headers()
 
     def set_csrf_header(self):
-        cookies = self._session.cookie_jar.filter_cookies('https://twitter.com/')
-        for key, cookie in cookies.items():
+        cookies = self._session.cookie_jar.filter_cookies(URL('https://twitter.com/'))
+        for _, cookie in cookies.items():
             if cookie.key == 'ct0':
                 self._headers['X-Csrf-Token'] = cookie.value
 
@@ -57,9 +57,9 @@ class TwitterSession:
             response = await r.json()
         guest_token = response.get("guest_token", None)
         if guest_token is None:
-            log.debug("Failed to fetch guest token")
-            log.debug(str(response))
-            log.debug(str(self._headers))
+            log.error("Failed to fetch guest token")
+            log.error(str(response))
+            log.error(str(self._headers))
         return guest_token
 
     def reset_headers(self):
@@ -106,6 +106,8 @@ class TwitterSession:
                 cookie_file = os.path.join(cookie_dir, username)
                 if os.path.isfile(cookie_file):
                     log.info("Use cookie file for %s" % username)
+                    # satisfy linter; https://github.com/aio-libs/aiohttp/issues/4043#issuecomment-529085744
+                    assert isinstance(self._session.cookie_jar, aiohttp.CookieJar)
                     self._session.cookie_jar.load(cookie_file)
                     login_required = False
 
@@ -136,6 +138,8 @@ class TwitterSession:
             self.username = username
 
             if cookie_file is not None and store_cookies:
+                # satisfy linter; https://github.com/aio-libs/aiohttp/issues/4043#issuecomment-529085744
+                assert isinstance(self._session.cookie_jar, aiohttp.CookieJar)
                 self._session.cookie_jar.save(cookie_file)
 
         else:
@@ -174,78 +178,20 @@ class TwitterSession:
     async def get_profile_tweets_raw(self, user_id):
         return await self.get("https://api.twitter.com/2/timeline/profile/" + str(user_id) +".json?include_tweet_replies=1&include_want_retweets=0&include_reply_count=1&count=1000")
 
-    async def tweet_raw(self, tweet_id, count=20, cursor=None, retry_csrf=True):
+    async def tweet_raw(self, tweet_id, count=20, cursor=None):
         if cursor is None:
             cursor = ""
         else:
             cursor = "&cursor=" + urllib.parse.quote(cursor)
         return await self.get("https://api.twitter.com/2/timeline/conversation/" + tweet_id + ".json?include_reply_count=1&send_error_codes=true&count="+str(count)+ cursor)
 
-    @classmethod
-    def flatten_timeline(cls, timeline_items):
-        result = []
-        for item in timeline_items:
-            if get_nested(item, ["content", "item", "content", "tweet", "id"]) is not None:
-                result.append(item["content"]["item"]["content"]["tweet"]["id"])
-            elif get_nested(item, ["content", "timelineModule", "items"]) is not None:
-                timeline_items = item["content"]["timelineModule"]["items"]
-                titems = [get_nested(x, ["item", "content", "tweet", "id"]) for x in timeline_items]
-                result += [x for x in titems if x is not None]
-        return result
-
-    @classmethod
-    def get_ordered_tweet_ids(cls, obj, filtered=True):
-        try:
-            entries = [x for x in obj["timeline"]["instructions"] if "addEntries" in x][0]["addEntries"]["entries"]
-        except (IndexError, KeyError):
-            return []
-        entries.sort(key=lambda x: -int(x["sortIndex"]))
-        flat = cls.flatten_timeline(entries)
-        return [x for x in flat if not filtered or x in obj["globalObjects"]["tweets"]]
-
     async def test(self, username):
-        result = {"timestamp": time.time()}
-        profile = {}
-        profile_raw = await self.profile_raw(username)
-        log.info('Testing ' + str(username))
-        if is_another_error(profile_raw, [50, 63]):
-            log.debug("Other error:" + str(username))
-            raise UnexpectedApiError
-
-        try:
-            user_id = str(profile_raw["id"])
-        except KeyError:
-            user_id = None
-
-        try:
-            profile["screen_name"] = profile_raw["screen_name"]
-        except KeyError:
-            profile["screen_name"] = username
-        try:
-            profile["restriction"] = profile_raw["profile_interstitial_type"]
-        except KeyError:
-            pass
-        if profile.get("restriction", None) == "":
-            del profile["restriction"]
-        try:
-            profile["protected"] = profile_raw["protected"]
-        except KeyError:
-            pass
-        profile["exists"] = not is_error(profile_raw, 50)
-        suspended = is_error(profile_raw, 63)
-        if suspended:
-            profile["suspended"] = suspended
-        try:
-            profile["has_tweets"] = int(profile_raw["statuses_count"]) > 0
-        except KeyError:
-            profile["has_tweets"] = False
-
+        result: dict[str, Any] = {"timestamp": time.time()}
+        user_id, profile = await test_profile(self, username)
         result["profile"] = profile
 
         if not profile["exists"] or profile.get("suspended", False) or profile.get("protected", False) or not profile.get('has_tweets'):
             return result
-
-        result["profile"]["sensitives"] = await count_sensitives(self, user_id)
 
         result["tests"] = {}
 
@@ -254,7 +200,7 @@ class TwitterSession:
         result["tests"]["search"] = False
         try:
             tweets = search_raw["globalObjects"]["tweets"]
-            for tweet_id, tweet in sorted(tweets.items(), key=lambda t: t[1]["id"], reverse=True):
+            for tweet_id, _ in sorted(tweets.items(), key=lambda t: t[1]["id"], reverse=True):
                 result["tests"]["search"] = str(tweet_id)
                 break
 
@@ -280,20 +226,13 @@ class TwitterSession:
     async def close(self):
         await self._session.close()
 
-    @classmethod
-    def next_session():
-        def key(s):
-            remaining_time = s.reset - time.time()
-            if s.remaining <= 3 and remaining_time > 0:
-                return 900
-            return remaining_time
-        sessions = sorted([s for s in TwitterSession.account_sessions if not s.locked], key=key)
-        if len(sessions) > 0:
-            return sessions[0]
-
-def is_error(result, code=None):
-    return isinstance(result.get("errors", None), list) and (len([x for x in result["errors"] if x.get("code", None) == code]) > 0 or code is None and len(result["errors"] > 0))
-
-def is_another_error(result, codes):
-    return isinstance(result.get("errors", None), list) and len([x for x in result["errors"] if x.get("code", None) not in codes]) > 0
-
+# unused
+def next_session():
+    def key(s):
+        remaining_time = s.reset - time.time()
+        if s.remaining <= 3 and remaining_time > 0:
+            return 900
+        return remaining_time
+    sessions = sorted([s for s in TwitterSession.account_sessions if not s.locked], key=key)
+    if len(sessions) > 0:
+        return sessions[0]

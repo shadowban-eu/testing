@@ -1,5 +1,3 @@
-import sys
-
 # Count amount of "possibly_sensitive_editable" and "possibly_sensitive"
 # flagged tweets in user's timeline
 async def count_sensitives(session, user_id):

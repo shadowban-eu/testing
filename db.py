@@ -1,8 +1,6 @@
 import copy
-import traceback
-import sys
 from time import sleep
-from pymongo import MongoClient, errors as MongoErrors
+from pymongo import MongoClient
 
 from log import log
 
@@ -12,8 +10,8 @@ class Database:
         RESULTS_COLLECTION = 'results'
         RATELIMIT_COLLECTION = 'rate-limits'
 
-        log.info('Connecting to ' + host + ':' + str(port))
-        log.info('Using Database `' + db + '`')
+        log.info('Connecting to %s:%d', host, port)
+        log.info('Using Database `%s`', db)
         # client and DB
         self.client = MongoClient(host, port, serverSelectionTimeoutMS=3, username=username, password=password)
         self.db = self.client[db]

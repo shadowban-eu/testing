@@ -1,3 +1,5 @@
+import traceback
+
 from log import log
 
 async def test(session, user_id):
