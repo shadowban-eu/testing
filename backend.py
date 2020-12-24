@@ -88,7 +88,7 @@ parser.add_argument('--port', type=int, default=8080, help='port which to listen
 parser.add_argument('--host', type=str, default='127.0.0.1', help='hostname/ip which to listen on (default:127.0.0.1)')
 parser.add_argument('--mongo-host', type=str, default='localhost', help='hostname or IP of mongoDB service to connect to (default: localhost)')
 parser.add_argument('--mongo-port', type=int, default=27017, help='port of mongoDB service to connect to (default: 27017)')
-parser.add_argument('--mongo-DB', type=str, default='tester', help='name of mongo database to use (default: tester)')
+parser.add_argument('--mongo-db', type=str, default='tester', help='name of mongo database to use (default: tester)')
 parser.add_argument('--mongo-username', type=str, default=None, help='user with read/write permissions to --mongo-DB')
 parser.add_argument('--mongo-password', type=str, default=None, help='password for --mongo-username')
 parser.add_argument('--twitter-auth-key', type=str, default=None, help='auth key for twitter guest session', required=True)
