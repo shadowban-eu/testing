@@ -9,10 +9,7 @@ from yarl import URL
 
 from log import log
 from tests import *
-from util import get_nested, is_error
-
-class UnexpectedApiError(Exception):
-    pass
+from util import get_nested, is_error, UnexpectedApiError
 
 class TwitterSession:
     twitter_auth_key = ''

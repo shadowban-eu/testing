@@ -1,11 +1,14 @@
-from typing import Any
+import sys
+import pathlib
+from typing import Any, Tuple, Dict
+
+sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
 from features import count_sensitives
 from log import log
-from twitter_session import TwitterSession, UnexpectedApiError
-from util import is_error, is_generic_error
+from util import is_error, is_generic_error, UnexpectedApiError
 
-async def test(session: TwitterSession, username: str) -> tuple[str, dict[str, Any]]:
+async def test(session, username: str) -> Tuple[str, Dict[str, Any]]:
     profile: dict[str, Any] = {}
     profile_raw = await session.profile_raw(username)
     log.info('Testing ' + str(username))

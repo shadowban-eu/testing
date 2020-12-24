@@ -30,3 +30,6 @@ def get_ordered_tweet_ids(obj, filtered=True):
     entries.sort(key=lambda x: -int(x["sortIndex"]))
     flat = flatten_timeline(entries)
     return [x for x in flat if not filtered or x in obj["globalObjects"]["tweets"]]
+
+class UnexpectedApiError(Exception):
+    pass
