@@ -27,12 +27,10 @@ async def test(session, username: str) -> Tuple[str, Dict[str, Any]]:
         profile["screen_name"] = username
 
     try:
-        profile["restriction"] = profile_raw["profile_interstitial_type"]
+        if profile_raw["profile_interstitial_type"] != "":
+            profile["restriction"] = profile_raw["profile_interstitial_type"]
     except KeyError:
         pass
-
-    if profile.get("restriction", None) == "":
-        del profile["restriction"]
 
     try:
         profile["protected"] = profile_raw["protected"]
@@ -50,6 +48,8 @@ async def test(session, username: str) -> Tuple[str, Dict[str, Any]]:
     except KeyError:
         profile["has_tweets"] = False
 
-    profile["sensitives"] = await count_sensitives(session, user_id)
+
+    if profile["exists"] and not profile.get("protected", False):
+        profile["sensitives"] = await count_sensitives(session, user_id)
 
     return user_id, profile
