@@ -1,12 +1,12 @@
 import traceback
 
 from log import log
-from util import get_nested
+from util import get_nested, get_ordered_tweet_ids
 
 async def test(session, user_id, screen_name):
     try:
         tweets_replies = await session.get_profile_tweets_raw(user_id)
-        tweet_ids = session.get_ordered_tweet_ids(tweets_replies)
+        tweet_ids = get_ordered_tweet_ids(tweets_replies)
 
         reply_tweet_ids = []
 
@@ -57,7 +57,7 @@ async def test(session, user_id, screen_name):
                 log.error('notweets')
                 return
 
-            if tid in session.get_ordered_tweet_ids(before_barrier):
+            if tid in get_ordered_tweet_ids(before_barrier):
                 return {"ban": False, "tweet": tid, "in_reply_to": replied_to_id}
 
             cursors = ["ShowMoreThreads", "ShowMoreThreadsPrompt"]
@@ -76,8 +76,8 @@ async def test(session, user_id, screen_name):
                 if get_nested(after_barrier, ["globalObjects", "tweets"]) is None:
                     log.error('retinloop')
                     return
-                ids_after_barrier = session.get_ordered_tweet_ids(after_barrier)
-                if tid in session.get_ordered_tweet_ids(after_barrier):
+                ids_after_barrier = get_ordered_tweet_ids(after_barrier)
+                if tid in get_ordered_tweet_ids(after_barrier):
                     return {"ban": True, "tweet": tid, "stage": stage, "in_reply_to": replied_to_id}
                 last_result = after_barrier
 
