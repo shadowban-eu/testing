@@ -49,7 +49,8 @@ async def test(session, username: str) -> Tuple[str, Dict[str, Any]]:
         profile["has_tweets"] = False
 
 
-    if profile["exists"] and not profile.get("protected", False):
+    log.debug(profile)
+    if profile["exists"] and not profile.get("protected", False) and not profile.get("suspended", False):
         profile["sensitives"] = await count_sensitives(session, user_id)
 
     return user_id, profile
