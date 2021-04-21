@@ -11,9 +11,9 @@ async def test(session, user_id, screen_name):
         reply_tweet_ids = []
 
         for tid in tweet_ids:
-            if "in_reply_to_status_id_str" not in tweets_replies["globalObjects"]["tweets"][tid] or tweets_replies["globalObjects"]["tweets"][tid]["user_id_str"] != user_id:
-                continue
             tweet = tweets_replies["globalObjects"]["tweets"][tid]
+            if "in_reply_to_status_id_str" not in tweet or tweet["in_reply_to_user_id_str"] == user_id or tweet["user_id_str"] != user_id:
+                continue
             conversation_tweet = get_nested(tweets_replies, ["globalObjects", "tweets", tweet["conversation_id_str"]])
             if conversation_tweet is not None and conversation_tweet.get("user_id_str") == user_id:
                 continue
